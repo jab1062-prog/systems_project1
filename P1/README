@@ -21,8 +21,8 @@ Test Programs:
 
 The programs we used to test:
 
-test_correctness(): Tests the functionality of mymalloc() and myfree(), including alignment, reuse, coalescing, and repeated operations.
-test_errors(Error Case): Cases include outside, interior, double, merged-double, oom, oversize, overflow, zero, leak, no-leak, and null.
+test_accuracy): Tests the functionality of mymalloc() and myfree(), including alignment, reuse, coalescing, and repeated operations.
+test_mistakes(Error Case): Cases include outside, interior, double, merged-double, oom, oversize, overflow, zero, leak, no-leak, and null.
 memtest(): Allocates multiple objects, fills them with different values, and checks that their data stays correct.
 memgrind(): Runs five different allocation and free workloads 50 times and reports the average execution time.
 
