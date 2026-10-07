@@ -2,12 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Compile with -DREALMALLOC to compare with the standard allocator. */
 #ifndef REALMALLOC
 #include "mymalloc.h"
 #endif
 
-/* Compile with -DLEAK to deliberately leave all objects allocated. */
 #ifndef LEAK
 #define LEAK 0
 #endif
@@ -29,9 +27,13 @@ int main(void)
             exit(EXIT_FAILURE);
         }
     }
+
+    
     for (int i = 0; i < OBJECTS; i++) {
         memset(obj[i], i, OBJSIZE);
     }
+
+    
     for (int i = 0; i < OBJECTS; i++) {
         for (int j = 0; j < OBJSIZE; j++) {
             if (obj[i][j] != i) {
@@ -40,11 +42,15 @@ int main(void)
             }
         }
     }
+
+    
     if (!LEAK) {
         for (int i = 0; i < OBJECTS; i++) {
             free(obj[i]);
         }
     }
+
+    
     printf("%d incorrect bytes\n", errors);
     if (errors != 0) {
         return EXIT_FAILURE;
