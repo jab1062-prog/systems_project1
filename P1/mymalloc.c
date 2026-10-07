@@ -6,13 +6,11 @@
 #define MEMLENGTH 4096
 #endif
 
-/* Keep size and allocation status in separate, ordinary fields. */
 struct header {
-    int size;       /* Total chunk size, including its header. */
-    int allocated;  /* 0 means free; 1 means in use. */
+    int size;       
+    int allocated;  
 };
 
-/* Round the header length up too, so every payload stays aligned. */
 #define HEADER_SIZE ((sizeof(struct header) + 7) & ~(size_t)7)
 
 static union {
@@ -22,8 +20,7 @@ static union {
 
 static int initialized = 0;
 
-/* memcpy is covered in the September 14 notes. Copy headers between the
- * byte array and a local struct; persistent metadata stays in the heap. */
+
 static struct header read_header(int offset)
 {
     struct header h;
@@ -84,7 +81,6 @@ static void invalid_free(char *file, int line)
     exit(2);
 }
 
-/* Walk from left to right, combining neighboring free chunks. */
 static void coalesce(void)
 {
     int offset = 0;
@@ -114,19 +110,16 @@ void *mymalloc(size_t size, char *file, int line)
     int needed;
 
     initialize();
-    /* Reject oversized requests before adding padding or converting to int. */
     if (size == 0 || size > MEMLENGTH - HEADER_SIZE) {
         return allocation_failure(size, file, line);
     }
 
-    /* September 21 notes: (n + 7) & ~7 rounds up to a multiple of eight. */
     needed = (int)((size + 7) & ~(size_t)7) + (int)HEADER_SIZE;
 
     while (offset < MEMLENGTH) {
         struct header h = read_header(offset);
         if (!h.allocated && h.size >= needed) {
             int remaining = h.size - needed;
-            /* A new free chunk needs a header and at least 8 data bytes. */
             if (remaining >= (int)HEADER_SIZE + 8) {
                 write_header(offset + needed, remaining, 0);
                 write_header(offset, needed, 1);
@@ -140,6 +133,8 @@ void *mymalloc(size_t size, char *file, int line)
     return allocation_failure(size, file, line);
 }
 
+
+
 void myfree(void *pointer, char *file, int line)
 {
     int offset = 0;
@@ -149,8 +144,6 @@ void myfree(void *pointer, char *file, int line)
         return;
     }
 
-    /* Compare only with known payload starts. Never read through the caller's
-     * pointer: it could be outside the heap or inside an existing object. */
     while (offset < MEMLENGTH) {
         struct header h = read_header(offset);
         if (pointer == (void *)(heap.bytes + offset + HEADER_SIZE)) {
