@@ -6,19 +6,25 @@
 #define MEMLENGTH 4096
 #endif
 
-struct header {
+struct header
+{
     int size;
     int allocated;  
 };
 
 #define HEADER_SIZE ((sizeof(struct header) + 7) & ~(size_t)7)
 
-static union {
+static union
+{
     char bytes[MEMLENGTH];
     double not_used;
-} heap;
+} 
+
+heap;
 
 static int initialized = 0;
+
+
 
 
 static struct header read_header(int offset)
@@ -29,6 +35,8 @@ static struct header read_header(int offset)
     
     return h;
 }
+
+
 
 static void write_header(int offset, int size, int allocated)
 {
@@ -45,29 +53,42 @@ static void report_leaks(void)
     int objects = 0;
     int bytes = 0;
 
-    while (offset < MEMLENGTH) {
+
+    
+    while (offset < MEMLENGTH)
+    {
         struct header h = read_header(offset);
-        if (h.allocated) {
+        if (h.allocated)
+        {
             objects++;
             bytes += h.size - (int)HEADER_SIZE;
         }
         offset += h.size;
     }
-    if (objects != 0) {
+
+    
+    if (objects != 0)
+    {
         fprintf(stderr, "mymalloc: %d bytes leaked in %d objects.\n",
                 bytes, objects);
     }
 }
 
+
+
 static void initialize(void)
 {
-    if (!initialized) {
+    if (!initialized)
+    {
         
         write_header(0, MEMLENGTH, 0);
-        if (atexit(report_leaks) != 0) {
+        if (atexit(report_leaks) != 0)
+        {
             fprintf(stderr, "mymalloc: Unable to register leak detector.\n");
             exit(1);
         }
+
+    
         initialized = 1;
     }
 }
@@ -84,7 +105,6 @@ static void *allocation_failure(size_t size, char *file, int line)
 static void invalid_free(char *file, int line)
 {
     fprintf(stderr, "free: Inappropriate pointer (%s:%d)\n", file, line);
-    
     exit(2);
 }
 
@@ -92,15 +112,19 @@ static void coalesce(void)
 {
     int offset = 0;
 
-    while (offset < MEMLENGTH) {
+    while (offset < MEMLENGTH)
+    {
         struct header h = read_header(offset);
         int next_offset = offset + h.size;
 
-        if (!h.allocated) {
+        if (!h.allocated)
+        {
             
-            while (next_offset < MEMLENGTH) {
+            while (next_offset < MEMLENGTH)
+            {
                 struct header next = read_header(next_offset);
-                if (next.allocated) {
+                if (next.allocated)
+                {
                     break;
                 }
                 h.size += next.size;
@@ -110,6 +134,8 @@ static void coalesce(void)
                 next_offset = offset + h.size;
             }
         }
+
+        
         offset += h.size;
     }
 }
@@ -120,29 +146,41 @@ void *mymalloc(size_t size, char *file, int line)
     int needed;
 
     initialize();
-    if (size == 0 || size > MEMLENGTH - HEADER_SIZE) {
+    if (size == 0 || size > MEMLENGTH - HEADER_SIZE)
+    {
         return allocation_failure(size, file, line);
     }
 
     needed = (int)((size + 7) & ~(size_t)7) + (int)HEADER_SIZE;
 
-    while (offset < MEMLENGTH) {
+    while (offset < MEMLENGTH)
+    {
         struct header h = read_header(offset);
-        if (!h.allocated && h.size >= needed) {
+        if (!h.allocated && h.size >= needed)
+        {
             
             int remaining = h.size - needed;
             
-            if (remaining >= (int)HEADER_SIZE + 8) {
+            if (remaining >= (int)HEADER_SIZE + 8)
+            {
                 write_header(offset + needed, remaining, 0);
-                
                 write_header(offset, needed, 1);
-            } else {
+            } 
+            
+            else
+            {
                 write_header(offset, h.size, 1);
             }
+
+            
             return heap.bytes + offset + HEADER_SIZE;
         }
+
+        
         offset += h.size;
     }
+
+    
     return allocation_failure(size, file, line);
 }
 
@@ -153,15 +191,19 @@ void myfree(void *pointer, char *file, int line)
     int offset = 0;
 
     initialize();
-    if (pointer == NULL) {
+    if (pointer == NULL)
+    {
         return;
     }
 
-    while (offset < MEMLENGTH) {
+    while (offset < MEMLENGTH)
+    {
         struct header h = read_header(offset);
         
-        if (pointer == (void *)(heap.bytes + offset + HEADER_SIZE)) {
-            if (!h.allocated) {
+        if (pointer == (void *)(heap.bytes + offset + HEADER_SIZE))
+        {
+            if (!h.allocated)
+            {
                 
                 invalid_free(file, line);
             }
