@@ -24,6 +24,7 @@ static void task1(void)
     }
 }
 
+
 static void task2(void)
 {
     void *p[120];
@@ -34,6 +35,7 @@ static void task2(void)
         free(p[i]);
     }
 }
+
 
 static void task3(void)
 {
@@ -50,16 +52,16 @@ static void task3(void)
             int chosen = rand() % live;
             free(p[chosen]);
             live--;
-            /* Move the last live pointer into the empty array slot. */
             p[chosen] = p[live];
         }
     }
+
+    
     for (int i = 0; i < live; i++) {
         free(p[i]);
     }
 }
 
-/* Free alternating objects, fill their holes, then free odds before evens. */
 static void task4(void)
 {
     void *p[40];
@@ -80,7 +82,8 @@ static void task4(void)
     }
 }
 
-/* Merge adjacent pairs while keeping every third object allocated. */
+
+
 static void task5(void)
 {
     void *p[30];
@@ -101,6 +104,9 @@ static void task5(void)
     }
 }
 
+
+
+
 int main(void)
 {
     struct timeval start, end;
@@ -118,10 +124,15 @@ int main(void)
         task4();
         task5();
     }
+
+    
     if (gettimeofday(&end, NULL) != 0) {
         perror("gettimeofday");
         return 1;
     }
+
+
+    
     elapsed = (end.tv_sec - start.tv_sec) * 1000000.0
             + (end.tv_usec - start.tv_usec);
     printf("Average time for the five-task workload (50 runs): %.3f microseconds\n",
