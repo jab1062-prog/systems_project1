@@ -222,6 +222,6 @@ int main(void)
     exact_fit_and_small_remainder();
     reuse_and_coalescing();
     random_data_preservation();
-    puts("All correctness tests passed.");
+    puts("All accuracy tests passed.");
     return 0;
 }
