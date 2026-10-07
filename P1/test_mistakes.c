@@ -25,43 +25,58 @@ int main(int argc, char **argv)
         return 1;
     }
     if (same_string(argv[1], "outside")) {
+        
         int local = 0;
         free(&local);
+        
         check(0, "outside pointer was accepted");
 
         
     } else if (same_string(argv[1], "interior")) {
         char *p = malloc(16);
+        
         check(p != NULL, "setup allocation failed");
+        
         free(p + 1);
+        
         check(0, "interior pointer was accepted");
 
         
     } else if (same_string(argv[1], "double")) {
         void *p = malloc(16);
+        
         check(p != NULL, "setup allocation failed");
+        
         free(p);
         free(p);
+        
         check(0, "double free was accepted");
 
         
     } else if (same_string(argv[1], "merged-double")) {
         void *a = malloc(16);
         void *b = malloc(16);
+        
         check(a != NULL && b != NULL, "setup allocation failed");
+        
         free(a);
         free(b);
         free(b);
+        
         check(0, "double free after merging was accepted");
 
         
     } else if (same_string(argv[1], "oom")) {
         void *p = malloc(4088);
+        
         check(p != NULL, "full-heap setup allocation failed");
         check(malloc(1) == NULL, "allocation succeeded in a full heap");
+        
         free(p);
+        
         p = malloc(4088);
         check(p != NULL, "failed allocation damaged the heap");
+        
         free(p);
 
         
@@ -85,12 +100,14 @@ int main(int argc, char **argv)
         void *a = malloc(1);
         void *b = malloc(20);
         void *c = malloc(8);
+        
         check(a != NULL && b != NULL && c != NULL, "setup allocation failed");
         free(c);
 
         
     } else if (same_string(argv[1], "no-leak")) {
         void *p = malloc(20);
+        
         check(p != NULL, "setup allocation failed");
         free(p);
 
