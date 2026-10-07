@@ -35,6 +35,6 @@ The heap is a 4096-byte array that is divided into chunks. Every chunk has an 8-
 mymalloc() rounds requested sizes up to multiples of 8 and searches for the first chunk that is free and large enough.
 myfree() marks a chunk in the array as "free" and combines all adjacent free chunks
 
-The heap is initialized automatically when malloc() or free() is first called.
+The heap is initialized automatically when mymalloc() or myfree() is first called.
 
 
