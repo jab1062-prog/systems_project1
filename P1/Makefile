@@ -1,27 +1,28 @@
 CC = gcc
-CFLAGS = -std=c11 -O2 -g -Wall -Wextra -Wpedantic
+CFLAGS = -std=c99 -g -Wall
 
 .PHONY: all tests check clean
+
 all: memgrind
 
-mymalloc.o: mymalloc.c mymalloc.h
+memgrind: memgrind.c mymalloc.c mymalloc.h
+	$(CC) $(CFLAGS) memgrind.c mymalloc.c -o memgrind
 
-memgrind: memgrind.o mymalloc.o
+test_correctness: test_correctness.c mymalloc.c mymalloc.h
+	$(CC) $(CFLAGS) test_correctness.c mymalloc.c -o test_correctness
 
-memgrind.o: memgrind.c mymalloc.h
+test_errors: test_errors.c mymalloc.c mymalloc.h
+	$(CC) $(CFLAGS) test_errors.c mymalloc.c -o test_errors
 
-test_correctness: test_correctness.o mymalloc.o
+memtest: memtest.c mymalloc.c mymalloc.h
+	$(CC) $(CFLAGS) memtest.c mymalloc.c -o memtest
 
-test_correctness.o: test_correctness.c mymalloc.h
-
-test_errors: test_errors.o mymalloc.o
-
-test_errors.o: test_errors.c mymalloc.h
-
-tests: test_correctness test_errors
+tests: test_correctness test_errors memtest
 
 check: all tests
-	sh ./run_tests.sh
+	./test_correctness
+	./memtest
+	./memgrind
 
 clean:
-	rm -f *.o memgrind test_correctness test_errors
+	rm -f *.o memgrind test_correctness test_errors memtest

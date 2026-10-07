@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include "mymalloc.h"
@@ -6,54 +5,58 @@
 #ifndef MEMLENGTH
 #define MEMLENGTH 4096
 #endif
-#define HEADER_SIZE 8u
-#define ALIGNMENT 8u
 
-_Static_assert(sizeof(uint64_t) == HEADER_SIZE, "Header must occupy eight bytes");
-_Static_assert(MEMLENGTH >= 16 && MEMLENGTH % ALIGNMENT == 0,
-               "Heap length must be a multiple of eight and at least sixteen");
+/* Keep size and allocation status in separate, ordinary fields. */
+struct header {
+    int size;       /* Total chunk size, including its header. */
+    int allocated;  /* 0 means free; 1 means in use. */
+};
+
+/* Round the header length up too, so every payload stays aligned. */
+#define HEADER_SIZE ((sizeof(struct header) + 7) & ~(size_t)7)
 
 static union {
     char bytes[MEMLENGTH];
     double not_used;
 } heap;
-static int initialized;
 
-/* The header stores total chunk length, with bit zero indicating allocation.
- * memcpy avoids interpreting the character array as a different object type.
- * No allocator bookkeeping persists outside the heap except initialized. */
-static uint64_t read_header(size_t offset)
+static int initialized = 0;
+
+/* memcpy is covered in the September 14 notes. Copy headers between the
+ * byte array and a local struct; persistent metadata stays in the heap. */
+static struct header read_header(int offset)
 {
-    uint64_t header;
-    memcpy(&header, heap.bytes + offset, HEADER_SIZE);
-    return header;
+    struct header h;
+    memcpy(&h, heap.bytes + offset, sizeof h);
+    return h;
 }
 
-static size_t chunk_size(uint64_t header)
+static void write_header(int offset, int size, int allocated)
 {
-    return (size_t)(header & ~UINT64_C(7));
-}
-
-static void write_header(size_t offset, size_t length, int allocated)
-{
-    uint64_t header = (uint64_t)length | (allocated ? UINT64_C(1) : 0);
-    memcpy(heap.bytes + offset, &header, HEADER_SIZE);
+    struct header h;
+    h.size = size;
+    h.allocated = allocated;
+    memcpy(heap.bytes + offset, &h, sizeof h);
 }
 
 static void report_leaks(void)
 {
-    size_t bytes = 0, objects = 0;
-    for (size_t offset = 0; offset < MEMLENGTH;) {
-        uint64_t header = read_header(offset);
-        size_t length = chunk_size(header);
-        if (header & UINT64_C(1)) {
-            bytes += length - HEADER_SIZE;
-            ++objects;
+    int offset = 0;
+    int objects = 0;
+    int bytes = 0;
+
+    while (offset < MEMLENGTH) {
+        struct header h = read_header(offset);
+        if (h.allocated) {
+            objects++;
+            bytes += h.size - (int)HEADER_SIZE;
         }
-        offset += length;
+        offset += h.size;
     }
-    if (objects != 0)
-        fprintf(stderr, "mymalloc: %zu bytes leaked in %zu objects.\n", bytes, objects);
+    if (objects != 0) {
+        fprintf(stderr, "mymalloc: %d bytes leaked in %d objects.\n",
+                bytes, objects);
+    }
 }
 
 static void initialize(void)
@@ -70,7 +73,8 @@ static void initialize(void)
 
 static void *allocation_failure(size_t size, char *file, int line)
 {
-    fprintf(stderr, "malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
+    fprintf(stderr, "malloc: Unable to allocate %zu bytes (%s:%d)\n",
+            size, file, line);
     return NULL;
 }
 
@@ -80,72 +84,84 @@ static void invalid_free(char *file, int line)
     exit(2);
 }
 
-/* Reclaim removed headers while merging; never examine an allocated payload. */
+/* Walk from left to right, combining neighboring free chunks. */
 static void coalesce(void)
 {
-    for (size_t offset = 0; offset < MEMLENGTH;) {
-        uint64_t header = read_header(offset);
-        size_t length = chunk_size(header);
-        if (!(header & UINT64_C(1))) {
-            while (offset + length < MEMLENGTH) {
-                uint64_t next = read_header(offset + length);
-                if (next & UINT64_C(1))
+    int offset = 0;
+
+    while (offset < MEMLENGTH) {
+        struct header h = read_header(offset);
+        int next_offset = offset + h.size;
+
+        if (!h.allocated) {
+            while (next_offset < MEMLENGTH) {
+                struct header next = read_header(next_offset);
+                if (next.allocated) {
                     break;
-                length += chunk_size(next);
-                write_header(offset, length, 0);
+                }
+                h.size += next.size;
+                write_header(offset, h.size, 0);
+                next_offset = offset + h.size;
             }
         }
-        offset += length;
+        offset += h.size;
     }
 }
 
 void *mymalloc(size_t size, char *file, int line)
 {
-    initialize();
-    /* Check before adding alignment padding, including for SIZE_MAX requests. */
-    if (size == 0 || size > (size_t)MEMLENGTH - HEADER_SIZE)
-        return allocation_failure(size, file, line);
+    int offset = 0;
+    int needed;
 
-    size_t payload = (size + ALIGNMENT - 1) & ~(size_t)(ALIGNMENT - 1);
-    size_t needed = HEADER_SIZE + payload;
-    for (size_t offset = 0; offset < MEMLENGTH;) {
-        uint64_t header = read_header(offset);
-        size_t length = chunk_size(header);
-        if (!(header & UINT64_C(1)) && length >= needed) {
-            size_t remainder = length - needed;
-            if (remainder >= HEADER_SIZE + ALIGNMENT) {
-                write_header(offset + needed, remainder, 0);
+    initialize();
+    /* Reject oversized requests before adding padding or converting to int. */
+    if (size == 0 || size > MEMLENGTH - HEADER_SIZE) {
+        return allocation_failure(size, file, line);
+    }
+
+    /* September 21 notes: (n + 7) & ~7 rounds up to a multiple of eight. */
+    needed = (int)((size + 7) & ~(size_t)7) + (int)HEADER_SIZE;
+
+    while (offset < MEMLENGTH) {
+        struct header h = read_header(offset);
+        if (!h.allocated && h.size >= needed) {
+            int remaining = h.size - needed;
+            /* A new free chunk needs a header and at least 8 data bytes. */
+            if (remaining >= (int)HEADER_SIZE + 8) {
+                write_header(offset + needed, remaining, 0);
                 write_header(offset, needed, 1);
             } else {
-                /* Keep the entire chunk if the remainder cannot form a chunk. */
-                write_header(offset, length, 1);
+                write_header(offset, h.size, 1);
             }
             return heap.bytes + offset + HEADER_SIZE;
         }
-        offset += length;
+        offset += h.size;
     }
     return allocation_failure(size, file, line);
 }
 
 void myfree(void *pointer, char *file, int line)
 {
-    initialize();
-    /* The assignment does not specify NULL; retain standard free(NULL) behavior. */
-    if (pointer == NULL)
-        return;
+    int offset = 0;
 
-    /* Compare for equality only. Ordering or subtracting unrelated pointers
-     * would not be portable C. Only exact allocated payload starts are valid. */
-    for (size_t offset = 0; offset < MEMLENGTH;) {
-        uint64_t header = read_header(offset);
+    initialize();
+    if (pointer == NULL) {
+        return;
+    }
+
+    /* Compare only with known payload starts. Never read through the caller's
+     * pointer: it could be outside the heap or inside an existing object. */
+    while (offset < MEMLENGTH) {
+        struct header h = read_header(offset);
         if (pointer == (void *)(heap.bytes + offset + HEADER_SIZE)) {
-            if (!(header & UINT64_C(1)))
+            if (!h.allocated) {
                 invalid_free(file, line);
-            write_header(offset, chunk_size(header), 0);
+            }
+            write_header(offset, h.size, 0);
             coalesce();
             return;
         }
-        offset += chunk_size(header);
+        offset += h.size;
     }
     invalid_free(file, line);
 }

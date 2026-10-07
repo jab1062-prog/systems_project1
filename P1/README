@@ -1,127 +1,149 @@
 CS 214 Fall 2026 - Project I: My little malloc()
 
-AUTHOR DETAILS - COMPLETE BEFORE SUBMITTING
-Name: [YOUR NAME]
-NetID: [YOUR NETID]
-Partner name: [PARTNER NAME, IF APPLICABLE]
-Partner NetID: [PARTNER NETID, IF APPLICABLE]
-AUTHOR is currently empty. Put only the actual NetID(s) in that file,
-separated by whitespace. Do not put names or these instructions in AUTHOR.
+AUTHORS
+Names: [fill in both authors' names before submission]
+NetIDs currently recorded in AUTHOR: jab106 ps1398
+Verify these NetIDs before submission. AUTHOR must contain only NetIDs.
 
-BUILD AND RUN (iLab / Linux with gcc)
+BUILD AND RUN ON ILAB
     make
     ./memgrind
+    make tests
     make check
     make clean
-No programs take arguments except test_errors, described below.
-make builds memgrind; make tests builds the two correctness-test programs.
-make check builds everything and runs run_tests.sh, including memgrind.
-Do not use -DNDEBUG when testing: tests use assert for their checks.
+
+make builds memgrind. make tests builds test_correctness, test_errors, and
+memtest. make check runs the three normal programs: test_correctness,
+memtest, and memgrind. Run the error cases separately as described below.
+All build commands are written explicitly in Makefile, using C99, -g, -Wall.
+
+CONNECTION TO THE COURSE NOTES
+September 2: GCC commands, C99, warnings, and debug information.
+September 8-9: integer flags, arrays, pointers, structs, and ordinary loops.
+September 14: unions, pointer arithmetic, void pointers, and memcpy.
+September 16: allocation, freeing, NULL, and separate compilation.
+September 21: rounding to eight bytes, macros, __FILE__, and __LINE__.
+September 21 malloc slides: first-fit allocation, splitting, in-heap
+metadata, and merging neighboring free chunks.
+September 23: header guards, exit codes, atexit, and standard error.
+September 28: redirecting standard output and standard error for tests.
+The later file-I/O and file-system lectures do not require extra allocator
+features. gettimeofday and random allocation choices come from Project I.
+rand and srand provide those random choices; gettimeofday provides timing.
 
 DESIGN
-The allocator was rewritten for the Fall 2026 specification after reviewing
-https://github.com/chris-gong/mymalloc. Its source is not copied here.
-This package was prepared with assistance from OpenAI Codex. Authors should
-review and understand the implementation and record any course-required
-assistance disclosure before submission.
+The heap is the required static union containing a double and a 4096-byte
+character array. The double keeps the beginning aligned to eight bytes.
+One static int records whether initialization has happened.
 
-Storage is a static union with a double member for alignment and a 4096-byte
-character array. Exactly one static int tracks initialization. Every chunk
-header is stored within the array; there are no external tracking arrays,
-linked-list pointers, or allocation counters. Helpers use automatic locals.
+Each chunk begins with a struct header containing two int fields:
+    size: total bytes in this chunk, including its header
+    allocated: zero for free, one for in use
+On the target iLab system, this header uses eight bytes. The header length
+is rounded to a multiple of eight. The next chunk starts at offset + size.
+No next or previous pointer is needed because all chunks are contiguous.
 
-Each header is eight bytes, encoded as a uint64_t. Its low bit indicates
-allocation; the remaining bits store total chunk length including header.
-Headers are read/written with memcpy to avoid object-aliasing violations.
-Payloads are rounded up to multiples of eight. The minimum chunk is sixteen
-bytes. A first-fit scan chooses a free chunk. Splitting occurs only if the
-remainder can contain an eight-byte header and at least eight payload bytes;
-otherwise the client receives the entire chunk. Allocated objects never move.
+read_header and write_header use memcpy to copy between a local struct and
+the byte array. These local copies exist only while a function runs. All
+persistent allocator metadata stays inside the heap.
 
-Initialization is automatic in both malloc and free and registers the leak
-detector with atexit. free validates exact payload addresses using equality
-comparisons, avoiding ordering or subtraction of unrelated pointers. After
-freeing, adjacent free chunks coalesce, recovering obsolete header space.
-Bad non-NULL pointers print to stderr and terminate with status 2.
-Allocation failures print the original requested size and return NULL.
-The leak detector counts live payloads (including alignment/unsplit padding),
-excluding headers, and does not itself call exit.
+Initialization creates one free chunk spanning the heap and registers the
+leak detector with atexit. Both allocator functions initialize automatically.
+malloc rounds data size up to eight bytes and scans for the first free chunk
+large enough. It splits only if the remainder can hold a header plus eight
+data bytes. Otherwise it gives the caller the entire chunk.
 
-Unspecified edge cases: malloc(0) returns NULL with the allocation-failure
-diagnostic. free(NULL) is a no-op, matching standard free. Requests too large
-for the heap, including SIZE_MAX, are rejected before rounding can overflow.
-Use-after-free without an allocator call is outside this library's detection
-scope. Once an address is allocated again, an old pointer to that same address
-cannot be distinguished from the new pointer by this interface.
+free scans the actual chunk headers for a matching payload start. It does
+not read through the caller's pointer. It marks a valid object free, then
+merges adjacent free chunks. It reports an invalid pointer and exits with
+status 2. Live objects stay in place, and their data is not used as metadata.
 
-MEMLENGTH can be changed in mymalloc.c or overridden at compile time, e.g.
-    gcc -std=c11 -DMEMLENGTH=8192 -c mymalloc.c
-It must be a multiple of eight and at least sixteen. The supplied tests and
-stress workload assume the assignment's default 4096-byte heap.
+The leak detector counts live objects and their payload sizes, including
+padding but excluding headers. It prints only when objects remain allocated.
+It does not call exit.
 
-STRESS WORKLOAD: memgrind
-Uses gettimeofday before and after fifty complete runs of the following five
-tasks; prints average microseconds per complete workload. Randomness is seeded
-once with 214 so choices are reproducible. No task deliberately makes errors.
-1. Allocate 8,16,32,64,128,512,1024 bytes, then free in reverse order.
+Chosen behavior for unspecified cases: free(NULL) does nothing; malloc(0)
+reports allocation failure and returns NULL. Oversized requests are rejected
+before rounding, avoiding overflow. Ordinary use-after-free cannot be detected
+without an allocator call. A stale pointer to an address that has since been
+allocated again cannot be distinguished from the new pointer.
+
+MEMLENGTH may be changed or set with -DMEMLENGTH. Use a multiple of eight
+that is large enough for a header and payload and fits in int. The supplied
+boundary tests assume 4096 bytes and an eight-byte header.
+
+MEMGRIND: FIVE TASKS, 50 COMPLETE RUNS
+1. Allocate 8,16,32,64,128,512,1024 bytes; free in reverse order.
 2. Allocate 120 one-byte objects; free in allocation order.
-3. Randomly choose allocation or freeing a random live object. Stop after
-   120 allocations, then free all remaining objects. With no live objects,
-   a deallocation choice does nothing. Live pointers are kept in a packed array.
-4. Allocate forty mixed-size objects, release alternating objects, replace
-   those with smaller objects, then free using a permutation of the indices.
-5. Allocate thirty 64-byte objects; free adjacent pairs in each group of three,
-   reuse those pairs for 128-byte objects, and free everything in reverse groups.
-Each task frees all objects. Peak live chunk storage stays below 4096 bytes.
+3. Randomly allocate a one-byte object or free a random live object until
+   120 total allocations have occurred. Then free all remaining objects.
+4. Allocate 40 mixed-size objects, free alternating objects, refill those
+   holes, free odd-indexed objects, then free even-indexed objects backwards.
+5. Allocate 30 objects of 64 bytes. Free adjacent pairs in groups of three,
+   replace those pairs with 128-byte objects, then free in reverse groups.
+Every task frees all its objects. gettimeofday measures the full workload
+repeated 50 times; the program reports elapsed microseconds divided by 50.
+Randomness is seeded once with 214 to make runs repeatable.
 
-TEST PLAN: requirement -> detection method -> executable test
-1. Alignment/rounding: allocate sizes 1..24, check each address modulo eight;
-   also read/write a double. test_correctness.
-2. Non-overlap/preservation: fill live allocations with distinct byte patterns
-   and verify them after writes, allocations, and frees. test_correctness also
-   runs 3000 deterministic operations on 32 slots with sizes 1..64, checking
-   every live object's contents before every operation.
-3. Exact-fit allocation: allocate/write/free all 4088 payload bytes. Then use
-   an exact-size interior hole while all remaining heap space is allocated.
-   test_correctness.
-4. Small remainder: allocate 4080 bytes, free, then request 4088; detects lost
-   tail space when an eight-byte remainder cannot form a chunk. test_correctness.
-5. Reuse/coalescing: free adjacent 64-byte chunks while a guard object exhausts
-   the rest of the heap, request their combined 136-byte payload, and verify
-   guard contents. Also merge with both free neighbors to form 208 payload
-   bytes. Finally free all and request 4088 bytes. test_correctness.
-6. Initialization: first operation is free(NULL); other test processes begin
-   with allocation or an invalid free, with no explicit initialization call.
-7. Invalid frees: independent processes test an outside pointer, an interior
-   pointer, immediate double-free, and double-free after coalescing. The runner
-   verifies status 2 and the stderr message with source filename and line.
-8. Exhaustion/boundaries: request 4088 then another byte; also request 4089,
-   SIZE_MAX, and zero. Check NULL, status zero, diagnostic format, request size,
-   and absence of leak messages. Check successful full allocation after freeing.
-9. Leak detector: intentionally leave 1-byte and 20-byte objects live while
-   freeing another; expect exactly 32 payload bytes in two objects. A separate
-   no-leak case must produce no stderr output.
-10. Stress: run memgrind, expect status zero, formatted timing output, and empty
-    stderr (including no leak report).
+TEST PLAN: REQUIREMENT -> CHECK -> PROGRAM
+Aligned allocation -> check relative payload offsets are multiples of eight
+and read/write a double -> test_correctness. The union aligns the heap start.
+Non-overlap and preservation -> fill objects with distinct byte patterns,
+then check them after allocations and frees -> test_correctness and memtest.
+Reuse -> fill the heap, free one hole, and allocate the same size in that
+only available hole -> test_correctness.
+Coalescing -> fill the heap, free adjacent blocks, and request their combined
+space while checking a live guard object's data -> test_correctness.
+Exact fits and small remainders -> request 4088 and 4080 data bytes, free,
+and confirm the whole heap can be allocated again -> test_correctness.
+Repeated operations -> perform 3000 random operations on 32 slots while
+checking all live data, then reclaim the whole heap -> test_correctness.
+Invalid frees, allocation failures, and leaks -> independent test_errors
+executions with the expected diagnostics and exit statuses below.
+Stress -> memgrind completes with timing output and no errors or leaks.
 
 TEST PROGRAMS
-test_correctness: no arguments; assert-based positive tests, prints success.
-test_errors: exactly one case argument:
-  outside, interior, double, merged-double: expected exit status 2.
-  oom, oversize, overflow, zero: expected allocation diagnostic, status 0.
-  leak: expected 'mymalloc: 32 bytes leaked in 2 objects.', status 0.
-  no-leak, null: expected no diagnostic, status 0.
-The interior-pointer test terminates while its object remains allocated, so
-an additional leak report on exit is expected. Unknown/missing cases exit 1.
-run_tests.sh runs each case separately and checks status and output.
+test_correctness takes no arguments. It uses if statements to check results,
+exits with status 1 on a failed check, and prints success when all pass.
+memtest takes no arguments. It fills 64 objects with distinct bytes and should
+print '0 incorrect bytes'. It returns failure if a byte is incorrect.
+Optional memtest builds: -DREALMALLOC uses the standard allocator;
+-DLEAK deliberately leaves the objects allocated for leak detection.
+
+test_errors takes exactly one argument. Run each case separately because
+invalid free calls must terminate the process:
+    ./test_errors outside        expected status 2, bad-pointer diagnostic
+    ./test_errors interior       expected status 2, bad-pointer diagnostic
+    ./test_errors double         expected status 2, bad-pointer diagnostic
+    ./test_errors merged-double  expected status 2, bad-pointer diagnostic
+    ./test_errors oom            expected status 0, allocation of 1 fails
+    ./test_errors oversize       expected status 0, allocation of 4089 fails
+    ./test_errors overflow       expected status 0, largest size_t fails
+    ./test_errors zero           expected status 0, allocation of 0 fails
+    ./test_errors leak           expected status 0, 32 bytes in 2 leaked objects
+    ./test_errors no-leak        expected status 0, no diagnostic
+    ./test_errors null           expected status 0, no diagnostic
+The interior case also reports its still-live 16-byte object at exit.
+Immediately after a command, use echo $? to view its exit status.
+To inspect diagnostics separately, use the redirection from the notes:
+    ./test_errors outside > output.txt 2> errors.txt
+Unknown or missing arguments return status 1.
+
+VALIDATION
+All four programs built with local MinGW GCC in C99 mode. All 14 normal,
+error, allocation-failure, and leak scenarios passed local execution, with
+their output and exit codes checked. This is not an iLab validation; run
+make check and the individual error cases on iLab before submission.
+
+ASSISTANCE AND PROVENANCE
+Revised with OpenAI Codex using the supplied lecture notes and Project I
+requirements. Review and understand the code and include any disclosure
+required by your course. The previous README recorded an earlier review of
+https://github.com/chris-gong/mymalloc; retain any applicable disclosure of
+that earlier work. This revision's design follows the supplied course notes.
 
 SUBMISSION
-VALIDATION STATUS: All programs linked for Windows with LLVM Clang, and all
-four C source files compiled for Linux x86_64 with C11 and strict warnings
-treated as errors. Local execution was blocked by Windows Application Control;
-runtime tests have not been verified. Run make check on iLab before submitting.
-
-Complete AUTHOR and the author details above. Run make check on iLab, then
-make clean. From the directory containing P1, create the archive with:
+Complete author names and verify AUTHOR. Test on iLab, then run make clean.
+Remove any diagnostic files you created. From the parent directory, run:
     tar -vzcf p1.tar P1
-Check its contents with tar -tzf p1.tar. Submit that archive to Canvas.
+Inspect the archive with tar -tzf p1.tar and submit to Canvas.

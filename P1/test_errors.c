@@ -1,8 +1,23 @@
-#include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include "mymalloc.h"
+
+/* Compare character arrays using a loop and their terminating zero bytes. */
+static int same_string(char *a, char *b)
+{
+    int i = 0;
+    while (a[i] != '\0' && a[i] == b[i]) {
+        i++;
+    }
+    return a[i] == b[i];
+}
+
+static void check(int condition, char *message)
+{
+    if (!condition) {
+        fprintf(stderr, "FAIL: %s\n", message);
+        exit(1);
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -10,45 +25,55 @@ int main(int argc, char **argv)
         fprintf(stderr, "Usage: %s outside|interior|double|merged-double|oom|oversize|overflow|zero|null|leak|no-leak\n", argv[0]);
         return 1;
     }
-    if (strcmp(argv[1], "outside") == 0) {
-        int local;
+    if (same_string(argv[1], "outside")) {
+        int local = 0;
         free(&local);
-    } else if (strcmp(argv[1], "interior") == 0) {
+        check(0, "outside pointer was accepted");
+    } else if (same_string(argv[1], "interior")) {
         char *p = malloc(16);
-        assert(p);
+        check(p != NULL, "setup allocation failed");
         free(p + 1);
-    } else if (strcmp(argv[1], "double") == 0) {
+        check(0, "interior pointer was accepted");
+    } else if (same_string(argv[1], "double")) {
         void *p = malloc(16);
-        assert(p);
+        check(p != NULL, "setup allocation failed");
         free(p);
         free(p);
-    } else if (strcmp(argv[1], "merged-double") == 0) {
-        void *a = malloc(16), *b = malloc(16);
-        assert(a && b);
-        free(a); free(b); free(b);
-    } else if (strcmp(argv[1], "oom") == 0) {
+        check(0, "double free was accepted");
+    } else if (same_string(argv[1], "merged-double")) {
+        void *a = malloc(16);
+        void *b = malloc(16);
+        check(a != NULL && b != NULL, "setup allocation failed");
+        free(a);
+        free(b);
+        free(b);
+        check(0, "double free after merging was accepted");
+    } else if (same_string(argv[1], "oom")) {
         void *p = malloc(4088);
-        assert(p);
-        assert(malloc(1) == NULL);
+        check(p != NULL, "full-heap setup allocation failed");
+        check(malloc(1) == NULL, "allocation succeeded in a full heap");
         free(p);
         p = malloc(4088);
-        assert(p);
+        check(p != NULL, "failed allocation damaged the heap");
         free(p);
-    } else if (strcmp(argv[1], "oversize") == 0) {
-        assert(malloc(4089) == NULL);
-    } else if (strcmp(argv[1], "overflow") == 0) {
-        assert(malloc(SIZE_MAX) == NULL);
-    } else if (strcmp(argv[1], "zero") == 0) {
-        assert(malloc(0) == NULL);
-    } else if (strcmp(argv[1], "null") == 0) {
+    } else if (same_string(argv[1], "oversize")) {
+        check(malloc(4089) == NULL, "oversized allocation succeeded");
+    } else if (same_string(argv[1], "overflow")) {
+        /* size_t is unsigned: converting -1 gives its largest value. */
+        check(malloc((size_t)-1) == NULL, "huge request was not rejected");
+    } else if (same_string(argv[1], "zero")) {
+        check(malloc(0) == NULL, "zero-byte allocation policy changed");
+    } else if (same_string(argv[1], "null")) {
         free(NULL);
-    } else if (strcmp(argv[1], "leak") == 0) {
-        void *a = malloc(1), *b = malloc(20), *c = malloc(8);
-        assert(a && b && c);
-        free(c); /* Two remaining objects: 8 + 24 aligned payload bytes. */
-    } else if (strcmp(argv[1], "no-leak") == 0) {
+    } else if (same_string(argv[1], "leak")) {
+        void *a = malloc(1);
+        void *b = malloc(20);
+        void *c = malloc(8);
+        check(a != NULL && b != NULL && c != NULL, "setup allocation failed");
+        free(c); /* Leave 8 + 24 aligned data bytes in two objects. */
+    } else if (same_string(argv[1], "no-leak")) {
         void *p = malloc(20);
-        assert(p);
+        check(p != NULL, "setup allocation failed");
         free(p);
     } else {
         fprintf(stderr, "Unknown test case: %s\n", argv[1]);

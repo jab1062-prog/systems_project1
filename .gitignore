@@ -1,0 +1,7 @@
+P1/*.o
+P1/*.exe
+P1/memgrind
+P1/memtest
+P1/test_correctness
+P1/test_errors
+p1.tar
