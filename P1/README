@@ -13,7 +13,7 @@ We wanted to Test:
 3. If freed memory can be used again. We freed an object and then allocated another object of the same size to check that the space was reused.
 4. If adjacent free chunks are combined correctly. We freed objects that were close to each other and then tried to allocate a larger object that needed their combined space.
 5. If mymalloc() handles chunks that exactly fit or leave too little space to split. We tested allocations near the size of the entire heap and then checked that the heap could be reused.
-6. If mymalloc() and free() still function after being used multiple times. We performed many random allocations and frees while checking the data of objects that were still allocated.
+6. If mymalloc() and myfree() still function after being used multiple times. We performed many random allocations and frees while checking the data of objects that were still allocated.
 7. If errors are detected. We tested invalid frees, allocation failures, and other invalid allocation cases.
 8. If leaked memory is detected. We tested programs that left objects allocated and programs that freed all their objects.
 
@@ -21,7 +21,7 @@ Test Programs:
 
 The programs we used to test:
 
-test_correctness(): Tests the functionality of mymalloc() and free(), including alignment, reuse, coalescing, and repeated operations.
+test_correctness(): Tests the functionality of mymalloc() and myfree(), including alignment, reuse, coalescing, and repeated operations.
 test_errors(Error Case): Cases include outside, interior, double, merged-double, oom, oversize, overflow, zero, leak, no-leak, and null.
 memtest(): Allocates multiple objects, fills them with different values, and checks that their data stays correct.
 memgrind(): Runs five different allocation and free workloads 50 times and reports the average execution time.
@@ -33,7 +33,7 @@ The design choices:
 The heap is a 4096-byte array that is divided into chunks. Every chunk has an 8-byte header containing its size and whether or not it is allocated.
 
 mymalloc() rounds requested sizes up to multiples of 8 and searches for the first chunk that is free and large enough.
-free() marks a chunk in the array as "free" and combines all adjacent free chunks
+myfree() marks a chunk in the array as "free" and combines all adjacent free chunks
 
 The heap is initialized automatically when malloc() or free() is first called.
 
