@@ -69,8 +69,7 @@ static void report_leaks(void)
     
     if (objects != 0)
     {
-        fprintf(stderr, "mymalloc: %d bytes leaked in %d objects.\n",
-                bytes, objects);
+        fprintf(stderr, "mymalloc: %d bytes leaked in %d objects.\n", bytes, objects);
     }
 }
 
@@ -80,7 +79,6 @@ static void initialize(void)
 {
     if (!initialized)
     {
-        
         write_header(0, MEMLENGTH, 0);
         if (atexit(report_leaks) != 0)
         {
@@ -95,8 +93,7 @@ static void initialize(void)
 
 static void *allocation_failure(size_t size, char *file, int line)
 {
-    fprintf(stderr, "malloc: Unable to allocate %zu bytes (%s:%d)\n",
-            size, file, line);
+    fprintf(stderr, "malloc: Unable to allocate %zu bytes (%s:%d)\n", size, file, line);
 
     
     return NULL;
@@ -146,6 +143,8 @@ void *mymalloc(size_t size, char *file, int line)
     int needed;
 
     initialize();
+
+    
     if (size == 0 || size > MEMLENGTH - HEADER_SIZE)
     {
         return allocation_failure(size, file, line);
@@ -191,6 +190,8 @@ void myfree(void *pointer, char *file, int line)
     int offset = 0;
 
     initialize();
+
+    
     if (pointer == NULL)
     {
         return;
