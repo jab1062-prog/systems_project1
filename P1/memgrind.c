@@ -12,6 +12,8 @@ static void *allocate(int size)
     return p;
 }
 
+
+
 int main(void)
 {
     struct timeval start, end;
@@ -23,20 +25,28 @@ int main(void)
         return 1;
     }
 
+
+    
     for (int run = 0; run < 50; run++) 
     {
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i < 7; i++)
+        {
             p[i] = allocate(sizes[i]);
         }
+
+        
         for (int i = 6; i >= 0; i--) 
         {
             free(p[i]);
         }
 
+        
         for (int i = 0; i < 120; i++) 
         {
             p[i] = allocate(1);
         }
+
+        
         for (int i = 0; i < 120; i++) 
         {
             free(p[i]);
@@ -52,7 +62,9 @@ int main(void)
                 p[live] = allocate(1);
                 live++;
                 allocations++;
-            } else if (live > 0) 
+            } 
+                
+            else if (live > 0) 
             {
                 int chosen = rand() % live;
                 free(p[chosen]);
@@ -65,24 +77,35 @@ int main(void)
             free(p[i]);
         }
 
+        
         for (int i = 0; i < 20; i++) 
         {
             p[i] = allocate(64);
         }
+
+
+        
         for (int i = 0; i < 20; i += 2)
         {
             free(p[i]);
             p[i] = allocate(32);
         }
+
+
+        
         for (int i = 19; i >= 0; i--) 
         {
             free(p[i]);
         }
 
+
+        
         for (int i = 0; i < 12; i++) 
         {
             p[i] = allocate(64);
         }
+
+        
         for (int i = 0; i < 12; i += 3) 
         {
             free(p[i]);
@@ -90,19 +113,24 @@ int main(void)
             p[i] = allocate(128);
             p[i + 1] = NULL;
         }
-        for (int i = 11; i >= 0; i--) {
-            if (p[i] != NULL) {
+
+        
+        for (int i = 11; i >= 0; i--)
+        {
+            if (p[i] != NULL)
+            {
                 free(p[i]);
             }
         }
     }
 
-    if (gettimeofday(&end, NULL) != 0) {
+    
+    if (gettimeofday(&end, NULL) != 0)
+    {
         return 1;
     }
 
-    double elapsed = (end.tv_sec - start.tv_sec) * 1000000.0
-                   + (end.tv_usec - start.tv_usec);
+    double elapsed = (end.tv_sec - start.tv_sec) * 1000000.0 + (end.tv_usec - start.tv_usec);
 
     printf("Average time: %.3f microseconds\n", elapsed / 50.0);
     return 0;
