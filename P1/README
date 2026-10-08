@@ -1,40 +1,44 @@
 CS 214 Fall 2026 - Project I: My little malloc()
 
-
-Names: Jacob Blunt and Pranav Srivats
+Names: Jacob Blunt and Pranav Srivats  
 NetIDs: jab106, ps1398
 
 Test Plan:
 
-We wanted to Test:
+We wanted to test:
 
-1. If the allocated pointers are aligned to 8 bytes. We checked that the addresses returned by mymalloc() were multiples of 8
-2. If the allocated objects overlap and overwrite each other. We filled different objects with different values and checked that their data stayed unchanged.
-3. If freed memory can be used again. We freed an object and then allocated another object of the same size to check that the space was reused.
-4. If adjacent free chunks are combined correctly. We freed objects that were close to each other and then tried to allocate a larger object that needed their combined space.
-5. If mymalloc() handles chunks that exactly fit or leave too little space to split. We tested allocations near the size of the entire heap and then checked that the heap could be reused.
-6. If mymalloc() and myfree() still function after being used multiple times. We performed many random allocations and frees while checking the data of objects that were still allocated.
-7. If errors are detected. We tested invalid frees, allocation failures, and other invalid allocation cases.
-8. If leaked memory is detected. We tested programs that left objects allocated and programs that freed all their objects.
+1. If allocated pointers have 8-byte alignment. We checked the spacing between pointers and stored a double.
+2. If allocated objects overlap and overwrite each other. We filled different objects with different values and checked that their data stayed unchanged.
+3. If freed memory can be used again. We freed an object and allocated another object of the same size to check that the space was reused.
+4. If adjacent free chunks are combined correctly. We freed neighboring objects and allocated a larger object that needed their combined space.
+5. If errors are detected. We tested outside pointers, interior pointers, double frees, and allocation failure.
+6. If leaked memory is detected. We deliberately left an object allocated and checked the leak message.
 
 Test Programs:
 
 The programs we used to test:
 
-test_accuracy): Tests the functionality of mymalloc() and myfree(), including alignment, reuse, coalescing, and repeated operations.
-test_mistakes(Error Case): Cases include outside, interior, double, merged-double, oom, oversize, overflow, zero, leak, no-leak, and null.
-memtest(): Allocates multiple objects, fills them with different values, and checks that their data stays correct.
-memgrind(): Runs five different allocation and free workloads 50 times and reports the average execution time.
+test_correctness: Tests alignment, data preservation, reuse, and coalescing. Takes no arguments.
+
+test_errors: Takes one test number:
+1. Outside pointer
+2. Interior pointer
+3. Double free
+4. Allocation failure
+5. Memory leak
+
+Cases 1–3 should exit with status 2. Cases 4–5 should exit with status 0 and print the expected error or leak message.
+
+memtest: Allocates multiple objects, fills them with different values, and checks that their data stays correct. Takes no arguments.
+
+memgrind: Runs five allocation and free workloads 50 times and reports the average execution time. Takes no arguments.
 
 Design Notes:
 
-The design choices:
+The heap is a 4096-byte array divided into chunks. Every chunk has an 8-byte header containing its size and whether it is allocated.
 
-The heap is a 4096-byte array that is divided into chunks. Every chunk has an 8-byte header containing its size and whether or not it is allocated.
+mymalloc() rounds requested sizes up to multiples of 8 and searches for the first free chunk that is large enough.
 
-mymalloc() rounds requested sizes up to multiples of 8 and searches for the first chunk that is free and large enough.
-myfree() marks a chunk in the array as "free" and combines all adjacent free chunks
+myfree() marks a chunk as free and combines adjacent free chunks.
 
 The heap is initialized automatically when mymalloc() or myfree() is first called.
-
-
