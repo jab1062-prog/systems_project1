@@ -18,9 +18,9 @@ Test Programs:
 
 The programs we used to test:
 
-test_correctness: Tests alignment, data preservation, reuse, and coalescing. Takes no arguments.
+test_accuracy: Tests alignment, data preservation, reuse, and coalescing. Takes no arguments.
 
-test_errors: Takes one test number:
+test_mistakes: Takes one test number:
 1. Outside pointer
 2. Interior pointer
 3. Double free
