@@ -47,11 +47,11 @@ Command:
 Expected: 
 hi 2
 Hi 1
-w 1
-hello 1
 don't 1
+hello 1
 hi-hello 1
 s 1
+w 1
 
 This checks capitalization, digits as separators, apostrophes, valid hyphens, and consecutive hyphens.
 
