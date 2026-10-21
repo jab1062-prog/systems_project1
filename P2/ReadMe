@@ -17,9 +17,87 @@ We wanted to test:
 8. If empty files are handled correctly. We tested an empty input file and checked that the program produced no word counts.
 9. If files in different locations are processed correctly. We tested individual files, multiple files, and directories containing files with different contents.
 
-Test Programs and Commands:
+BUILD AND RUN
 
-The tests we used included:
+From the P2 directory:
+make
+./words first.txt
 
-- `./words first.txt`: Tests counting repeated words in a single file.
-- `./words rules.txt`:
+TESTING SECTION
+
+We selected small files whose expected counts could be checked manually. These cases cover counting, word boundaries, sorting, multiple inputs, directory traversal, suffix filtering, and empty input.
+
+1. Repeated words and sorting
+
+Command:
+./words first.txt
+
+Expected:
+spam 2
+bacon 1
+eggs 1
+
+This checks repeated-word counts, descending count order, lexicographic ordering for ties, and counting the last word without a trailing newline.
+
+2. Word parsing
+
+Command:
+./words rules.txt
+
+Expected:
+foo 2
+Foo 1
+a 1
+bar 1
+don't 1
+foo-bar 1
+z 1
+
+This checks capitalization, digits as separators, apostrophes, valid hyphens, and consecutive hyphens.
+
+3. Multiple input files
+
+Command:
+./words first.txt second.txt
+
+Expected:
+spam 3
+bacon 1
+eggs 1
+
+This checks that counts are combined across files.
+
+4. Recursive directory traversal
+
+Command:
+./words sample_test_folder
+
+Check that matching .txt files in the directory and its subdirectories contribute to the counts. Entries whose names begin with a period must be ignored. Counts should match the contents of the eligible files.
+
+5. Suffix-option forms
+
+Commands:
+./words -s .txt sample_test_folder
+./words -s.txt sample_test_folder
+
+Both commands should produce the same output as the default directory traversal because the default suffix is .txt.
+
+6. Explicit files bypass suffix filtering
+
+Command:
+./words -s .md first.txt
+
+Expected:
+spam 2
+bacon 1
+eggs 1
+
+Although the selected directory suffix is .md, first.txt must still be processed because it was explicitly named.
+
+7. Empty input
+
+Command:
+./words empty.txt
+
+Expected:
+No output.
