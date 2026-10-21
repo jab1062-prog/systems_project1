@@ -61,9 +61,9 @@ Command:
 ./words first.txt second.txt
 
 Expected:
-spam 3
-bacon 1
-eggs 1
+jacob 3
+pranav 1
+tommy 1
 
 This checks that counts are combined across files.
 
