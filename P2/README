@@ -44,7 +44,7 @@ This checks repeated-word counts, descending count order, lexicographic ordering
 Command:
 ./words rules.txt
 
-Expected:
+Expected: 
 hi 2
 Hi 1
 w 1
