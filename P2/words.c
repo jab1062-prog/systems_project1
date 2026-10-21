@@ -141,7 +141,7 @@ static void read_file(Table *table, const char *path)
     {
         fail(path);
     } 
-    for (;;) 
+    while(1) 
     {
         size_t i;
 
@@ -153,7 +153,11 @@ static void read_file(Table *table, const char *path)
             fail(path);
         }
 
-        if (bytes == 0) break;
+        if (bytes == 0)
+        {
+             break;
+        }
+           
         for (i = 0; i < (size_t)bytes; ++i) 
         {
             unsigned char c = buffer[i];
@@ -169,6 +173,7 @@ static void read_file(Table *table, const char *path)
                 {
                     finish(table, word, &length);
                 }
+                
                 pending_dash = 0;
             }
             
@@ -216,7 +221,7 @@ static void scan(Table *table, const char *path, const char *suffix)
         fail(path);
     }
 
-    for (;;) 
+    while(1) 
     {
         char *child;
         size_t p, n;
@@ -233,6 +238,7 @@ static void scan(Table *table, const char *path, const char *suffix)
 
             break;
         }
+        
         if (entry->d_name[0] == '.')
         {   
             continue;
@@ -241,6 +247,7 @@ static void scan(Table *table, const char *path, const char *suffix)
 
         p = strlen(path);
         n = strlen(entry->d_name);
+        
         if (p > SIZE_MAX - n - 2)
         { 
             errno = EOVERFLOW; fail("path length");
@@ -295,6 +302,7 @@ static int compare(const void *left, const void *right)
 
     return strcmp(a->word, b->word);
 }
+
 
 static void write_all(const char *text, size_t length)
 {
