@@ -1,1 +1,25 @@
+CS 214 Fall 2026 - Project II: Word Occurrence Counter
 
+Names: Jacob Blunt and Pranav Srivats
+NetIDs: jab106, ps1398
+
+Test Plan:
+
+We wanted to test:
+
+1. If words are counted correctly. We tested files containing repeated words and checked that the output showed the correct occurrence counts.
+2. If words are parsed according to the assignment rules. We tested words containing uppercase letters, numbers, apostrophes, and hyphens, including cases such as `Foo`, `foo--bar`, `foo-bar`, `a2z`, and `don't`.
+3. If multiple input files are processed correctly. We tested multiple files together and checked that occurrences of the same word were combined across all files.
+4. If directories are searched recursively. We created a directory containing files and subdirectories and checked that words from files in nested directories were counted.
+5. If hidden files and directories are ignored. We tested directories containing hidden files and hidden directories to check that their contents were not included.
+6. If the suffix option works correctly. We tested the `-s` option with suffixes such as `.txt` and checked that only matching files were processed. We also tested both `-s .txt` and `-s.txt`.
+7. If words are sorted correctly. We checked that words were printed in descending order of occurrence count and that words with equal counts were sorted alphabetically.
+8. If empty files are handled correctly. We tested an empty input file and checked that the program produced no word counts.
+9. If files in different locations are processed correctly. We tested individual files, multiple files, and directories containing files with different contents.
+
+Test Programs and Commands:
+
+The tests we used included:
+
+- `./words first.txt`: Tests counting repeated words in a single file.
+- `./words rules.txt`:
