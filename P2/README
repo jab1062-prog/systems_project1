@@ -33,9 +33,9 @@ Command:
 ./words first.txt
 
 Expected:
-spam 2
-bacon 1
-eggs 1
+jacob 2
+pranav 1
+tommy 1
 
 This checks repeated-word counts, descending count order, lexicographic ordering for ties, and counting the last word without a trailing newline.
 
