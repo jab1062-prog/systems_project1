@@ -1,145 +1,24 @@
+CS 214 Fall 2026 - Project III: Minimal Shell
 
-CS 214 Project III - minimal shell example
-Partner 1 name / NetID: FILL IN
-Partner 2 name / NetID: FILL IN
+Names: Jacob Blunt and Pranav Srivats
+NetIDs: jab1062, ps1398
 
-BUILD (Linux / iLab)
-make
-./mysh                 interactive when stdin is a terminal
-./mysh commands.txt    batch file
-make sanitize          optional sanitizer build; repeat manual tests afterward
-make clean
+Test Plan:
 
-DESIGN
-One read()-based input loop and parser serve both modes. One-byte reads avoid
-reading beyond a newline before executing the command. Lines and arguments grow
-dynamically. Batch children use /dev/null unless input is redirected or piped.
-Wildcards use opendir/readdir with prefix/suffix matching. Unmatched patterns
-stay literal. Patterns beginning with * exclude hidden names.
-Lookup uses access and /usr/local/bin, /usr/bin, /bin in that order.
-Standalone built-ins execute in the parent with saved/restored descriptors.
-Pipelines launch all children before waiting and close unused descriptors.
-Every child is reaped; the last stage determines status. Pipeline built-ins run
-in children. The parent detects exit and stops after the entire job completes.
-Output creation uses mode 0640 subject to umask. Programs execute through execv.
+We wanted to test:
 
-SCOPE
-Uses the notes on dynamic memory, directory IO, processes, pipes and wait status.
-Networking is unnecessary. No quoting, variables or background jobs are required.
-Operators must have surrounding spaces. One star in the last path component is
-supported. Wildcard order follows directory enumeration, not sorting.
-Repeated redirection of the same stream is treated as a syntax error.
-The contradictory mode sentence is interpreted using the examples: argument
-files are batch; otherwise isatty selects the mode. Input redirection changes
-stdin, output redirection changes stdout. Pipeline redirections are supported
-for the exit example; explicit redirection overrides the pipe endpoint.
+1. If basic commands execute correctly. We tested commands such as `echo`, `cat`, and `pwd` to check that the shell executes programs and displays their output correctly.
+2. If batch mode works correctly. We tested the shell using command files and piped input to check that commands execute in order without displaying interactive prompts or welcome and goodbye messages.
+3. If input and output redirection work correctly. We tested redirecting input from files and redirecting output to files. We also checked that existing files are replaced and newly created files have the correct permissions.
+4. If pipelines work correctly. We tested commands connected by pipes, including multi-stage pipelines, to check that output from one command becomes input to the next. We also checked that pipeline commands do not hang and that the last command determines the pipeline's exit status.
+5. If built-in commands work correctly. We tested commands such as `cd`, `exit`, and `which` to check that they behave correctly. We also checked that changing directories in a pipeline does not change the parent shell's directory.
+6. If wildcard expansion works correctly. We created files with different names and tested patterns containing `*` to check prefix and suffix matching. We also tested unmatched patterns and hidden files.
+7. If command lookup works correctly. We tested commands using their names and absolute paths to check that executables are found in the correct search directories.
+8. If errors are handled correctly. We tested invalid commands, missing files, permission errors, and invalid redirections to check that the shell reports errors and continues executing subsequent commands.
+9. If the exit command works correctly. We tested `exit` in interactive mode, batch mode, and pipelines to check that the shell stops only after the current job finishes.
+10. If signals are handled correctly. We tested Ctrl-D and Ctrl-C behavior through a signal helper program, and commands terminated by signals to check that the shell handles them without crashing.
+11. If long input lines are handled correctly. We tested a command containing at least 2,000 characters to check that input lines and arguments can grow dynamically.
+12. If empty input and missing trailing newlines are handled correctly. We tested empty input and commands without a final newline to check that the shell handles both cases properly.
 
-MANUAL TEST PLAN
-No Python or automated test framework is used. Compare outputs by hand and record
-actual observations. Run setup in your REGULAR Linux shell from mysh-example:
-  make
-  mkdir test-work
-  cd test-work
-  touch one.txt two.txt .hidden.txt foo foobar
-  mkdir sub
-  touch sub/a.txt
-  umask 022
-Use a fresh test-work directory to keep wildcard results predictable.
+BUILD AND RUN
 
-1. Run ../mysh ../tests/basic.in
-Expected output, in order:
-  hello
-  after-cat
-  first
-  second
-  replacement
-  50000 (possibly with leading spaces)
-  absolute path of test-work
-  same absolute path of test-work
-  one.txt two.txt (either order)
-  absent*
-  foobar
-  one.txt two.txt foobar (first two may be reversed)
-  sub/a.txt
-  first executable echo in the three search directories
-  /bin/cat
-  first executable which in the three search directories
-No prompts, welcome or goodbye should appear. cat must not consume subsequent
-commands. The large three-stage pipeline must finish without hanging.
-The paths check redirected pwd and that pipeline cd leaves the parent unchanged.
-In your regular shell, cat data must print replacement; cat copy prints first
-and second; ls -l data must show rw-r----- for the newly created file.
-Repeat using cat ../tests/basic.in | ../mysh; expect the same results.
-
-2. Run ../mysh ../tests/errors.in
-Expect diagnostics and a final stdout line of alive. Immediately run echo $?
-in your regular shell: expect 0.
-Run ../mysh nonexistent and immediately echo $?: expect nonzero and a diagnostic.
-In your regular shell:
-  touch blocked
-  chmod 000 blocked
-  printf 'echo x > blocked\necho recovered\n' | ../mysh
-As a normal non-root user, expect a permission error followed by recovered.
-  chmod 644 blocked
-  printf './blocked\necho recovered\n' | ../mysh
-Expect an execution error followed by recovered.
-
-3. Run ../mysh ../tests/exit.in
-Expect no stdout. In your regular shell, cat farewell must print farewell;
-unreachable must never appear. This checks completion before exit.
-  printf 'exit ignored\n' | ../mysh
-Expect silent successful exit.
-  printf 'echo final' | ../mysh
-Expect final despite the missing trailing newline.
-  printf '' | ../mysh
-Expect no output.
-
-4. Start ../mysh without arguments. Expect welcome and an immediate prompt
-ending in '$ '. Enter each command separately:
-  cd
-  pwd
-  cd /
-  pwd
-  cd /does-not-exist-987
-  pwd
-  false
-  false | true
-  true | false
-  which
-  exit anything
-After cd alone expect ~$ and HOME from pwd. After cd / expect /$ and /.
-Failed cd leaves the directory unchanged. false reports status 1;
-false | true reports no failure; true | false reports status 1. which without
-arguments fails. exit ignores arguments and prints goodbye.
-Repeat with cd to a HOME subdirectory: expect ~/subdirectory. If available,
-visit a directory outside HOME sharing its text prefix: expect its full path.
-Start again and press Ctrl-D at an empty prompt: expect goodbye.
-
-5. In your regular shell, from test-work:
-  gcc -std=c99 -Wall -Wextra -o signal-helper ../tests/signal.c
-  ../mysh
-Inside mysh, enter cat, type hello and Enter, then press Ctrl-D. cat echoes hello
-and the prompt returns. Enter ./signal-helper: expect a signal description and
-another prompt. Enter exit. Back in your regular shell:
-  printf './signal-helper\necho alive\n' | ../mysh
-Expect alive with no interactive signal-status banner.
-
-6. In a text editor, create long.in containing echo, a space and at least 2,000 x
-characters on one line. Run ../mysh long.in: expect the complete line without a
-crash. Include this additional input in your submission if used.
-Optionally return to mysh-example, run make sanitize, then repeat the manual
-cases. Expect no AddressSanitizer or UBSan diagnostics. This target only builds.
-
-VALIDATION STATUS
-Source and instructions reviewed on Windows. No usable Linux C compiler or WSL
-was available. Compilation, runtime tests and sanitizer checks have NOT been
-performed. These are expected results, not claims of passing tests. Run the plan
-on iLab, record observations and fill in partner information before submission.
-The example targets the stated requirements but cannot guarantee full marks.
-
-PACKAGING
-From the containing directory:
-  tar -czf mysh.tar.gz mysh-example/mysh.c mysh-example/Makefile \
-      mysh-example/README mysh-example/tests
-Include any additional test inputs actually used. No Python tests or generated
-executables are included in the supplied archive.
