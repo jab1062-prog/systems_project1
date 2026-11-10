@@ -1,0 +1,9 @@
+echo < <
+| cat
+echo x |
+cat < nonexistent
+missing_program_987
+cd a b
+pwd extra
+which
+echo alive
