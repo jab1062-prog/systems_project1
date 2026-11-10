@@ -1,6 +1,5 @@
 
 #define _POSIX_C_SOURCE 200809L
-
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -19,7 +18,9 @@ typedef struct
     int append;
 } Cmd;
 
-/* Allocate or resize memory. */
+
+
+
 static void *mem(void *p, size_t n)
 {
     void *q = realloc(p, n);
@@ -33,7 +34,9 @@ static void *mem(void *p, size_t n)
     return q;
 }
 
-/* Make a copy of a string. */
+
+
+
 static char *copy(const char *s)
 {
     char *p = mem(NULL, strlen(s) + 1);
@@ -43,13 +46,15 @@ static char *copy(const char *s)
     return p;
 }
 
-/* Get the current working directory, growing the buffer if necessary. */
+
+
+
 static char *cwd(void)
 {
     size_t n = 128;
     char *p = NULL;
 
-    for (;;)
+    while (1)
     {
         p = mem(p, n);
 
@@ -69,7 +74,10 @@ static char *cwd(void)
     }
 }
 
-/* Add an argument to a command. */
+
+
+
+
 static void arg(Cmd *c, const char *s)
 {
     c->av = mem(c->av, (c->n + 2) * sizeof(char *));
@@ -78,7 +86,9 @@ static void arg(Cmd *c, const char *s)
     c->av[c->n] = NULL;
 }
 
-/* Expand wildcard patterns using directory entries. */
+
+
+
 static void expand(Cmd *c, const char *s)
 {
     const char *star = strchr(s, '*');
@@ -90,19 +100,26 @@ static void expand(Cmd *c, const char *s)
         return;
     }
 
+    
     size_t base = slash ? (size_t)(slash - s + 1) : 0;
 
     char *dir = copy(s);
     dir[base] = '\0';
 
+    
     DIR *d = opendir(base ? dir : ".");
     free(dir);
 
+
+    
     size_t before = (size_t)(star - s) - base;
     size_t after = strlen(star + 1);
     size_t old = c->n;
 
-    if (d)
+
+
+    
+    if (d == true)
     {
         struct dirent *e;
 
@@ -116,13 +133,12 @@ static void expand(Cmd *c, const char *s)
                 continue;
             }
 
-            if (len < before + after ||
-                strncmp(name, s + base, before) ||
-                strcmp(name + len - after, star + 1))
+            if (len < before + after || strncmp(name, s + base, before) || strcmp(name + len - after, star + 1))
             {
                 continue;
             }
 
+            
             char *path = mem(NULL, base + len + 1);
 
             memcpy(path, s, base);
@@ -142,16 +158,16 @@ static void expand(Cmd *c, const char *s)
     }
 }
 
-/* Check whether a token is a shell operator. */
+
+
+
 static int special(const char *s)
 {
-    return !strcmp(s, "|") ||
-           !strcmp(s, "<") ||
-           !strcmp(s, ">") ||
-           !strcmp(s, ">>");
+    return !strcmp(s, "|") || !strcmp(s, "<") || !strcmp(s, ">") || !strcmp(s, ">>");
 }
 
-/* Free all memory used by parsed commands. */
+
+
 static void release(Cmd *c, size_t n)
 {
     for (size_t i = 0; i < n; i++)
@@ -169,7 +185,9 @@ static void release(Cmd *c, size_t n)
     free(c);
 }
 
-/* Parse a command line into commands and arguments. */
+
+
+
 static int parse(char *line, Cmd **result, size_t *count)
 {
     char *hash = strchr(line, '#');
@@ -258,7 +276,6 @@ bad:
     return 1;
 }
 
-/* Find an executable using the required search directories. */
 static char *resolve(const char *name)
 {
     if (strchr(name, '/'))
@@ -290,18 +307,15 @@ static char *resolve(const char *name)
     return NULL;
 }
 
-/* Check whether a command is a built-in command. */
+
 static int builtin(Cmd *c)
 {
     const char *s = c->av[0];
 
-    return !strcmp(s, "cd") ||
-           !strcmp(s, "pwd") ||
-           !strcmp(s, "which") ||
-           !strcmp(s, "exit");
+    return !strcmp(s, "cd") || !strcmp(s, "pwd") || !strcmp(s, "which") || !strcmp(s, "exit");
 }
 
-/* Execute a built-in command. */
+
 static int run_builtin(Cmd *c)
 {
     char **v = c->av;
@@ -388,7 +402,6 @@ static int run_builtin(Cmd *c)
     return failed;
 }
 
-/* Set up input and output redirection. */
 static int redirect(Cmd *c)
 {
     for (int i = 0; i < 2; i++)
@@ -400,13 +413,7 @@ static int redirect(Cmd *c)
             continue;
         }
 
-        int fd = open(
-            p,
-            i ? O_WRONLY | O_CREAT |
-                (c->append ? O_APPEND : O_TRUNC)
-              : O_RDONLY,
-            0640
-        );
+        int fd = open(p,i ? O_WRONLY | O_CREAT | (c->append ? O_APPEND : O_TRUNC) : O_RDONLY, 0640);
 
         if (fd < 0)
         {
@@ -427,7 +434,8 @@ static int redirect(Cmd *c)
     return 0;
 }
 
-/* Execute commands and manage pipeline processes. */
+
+
 static int execute(Cmd *c, size_t n, int interactive, int input)
 {
     if (n == 1 && builtin(c))
@@ -477,6 +485,7 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
     int failed = 0;
     int result = 0;
 
+    
     for (size_t i = 0; i < n; i++)
     {
         int fds[2] = {-1, -1};
@@ -488,6 +497,7 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
             break;
         }
 
+        
         pid_t p = fork();
 
         if (p < 0)
@@ -521,6 +531,8 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
 
                 close(prev);
             }
+
+                
             else if (!interactive)
             {
                 int fd = open("/dev/null", O_RDONLY);
@@ -561,8 +573,7 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
 
             if (!path)
             {
-                fprintf(stderr, "%s: not found\n", c[i].av[0]);
-                _exit(1);
+                fprintf(stderr, "%s: not found\n", c[i].av[0]); _exit(1);
             }
 
             execv(path, c[i].av);
@@ -573,8 +584,13 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
             _exit(1);
         }
 
+
+        
         pids[started++] = p;
 
+
+        
+        
         if (prev >= 0)
         {
             close(prev);
@@ -588,10 +604,13 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
         prev = fds[0];
     }
 
+
+    
     if (prev >= 0)
     {
         close(prev);
     }
+
 
     if (failed)
     {
@@ -601,6 +620,8 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
         }
     }
 
+
+    
     for (size_t i = 0; i < started; i++)
     {
         int status;
@@ -628,7 +649,7 @@ static int execute(Cmd *c, size_t n, int interactive, int input)
     return failed ? 1 << 8 : result;
 }
 
-/* Display the interactive shell prompt. */
+
 static void prompt(void)
 {
     char *p = cwd();
@@ -647,12 +668,9 @@ static void prompt(void)
         len--;
     }
 
-    if (len && !strncmp(p, h, len) &&
-        (p[len] == 0 || p[len] == '/' || len == 1))
+    if (len && !strncmp(p, h, len) && (p[len] == 0 || p[len] == '/' || len == 1))
     {
-        dprintf(1, "~%s%s$ ",
-                len == 1 && p[1] ? "/" : "",
-                p + len);
+        dprintf(1, "~%s%s$ ", len == 1 && p[1] ? "/" : "", p + len);
     }
     else
     {
@@ -662,6 +680,8 @@ static void prompt(void)
     free(p);
 }
 
+
+
 int main(int argc, char **argv)
 {
     if (argc > 2)
@@ -670,6 +690,8 @@ int main(int argc, char **argv)
         return 0;
     }
 
+
+    
     int fd = argc == 2 ? open(argv[1], O_RDONLY) : 0;
 
     if (fd < 0)
@@ -681,6 +703,8 @@ int main(int argc, char **argv)
     int interactive = argc == 1 && isatty(0);
     int stop = 0;
 
+
+    
     if (interactive)
     {
         dprintf(1, "Welcome to my shell!\n");
@@ -701,7 +725,8 @@ int main(int argc, char **argv)
         char ch;
         ssize_t r;
 
-        /* Read one byte at a time so child processes can use terminal input. */
+
+        
         for (;;)
         {
             do
@@ -724,6 +749,8 @@ int main(int argc, char **argv)
             line[len++] = ch;
         }
 
+
+        
         if (r < 0)
         {
             perror("read");
@@ -731,20 +758,30 @@ int main(int argc, char **argv)
             break;
         }
 
+        
+
         if (r == 0 && !len)
         {
             free(line);
             break;
         }
 
+
+        
         line = mem(line, len + 1);
         line[len] = '\0';
 
+
+        
         Cmd *c = NULL;
         size_t n = 0;
 
+
+        
         int status = 1 << 8;
 
+
+        
         if (!parse(line, &c, &n))
         {
             for (size_t i = 0; i < n; i++)
@@ -755,7 +792,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            if (n)
+            if (n == true)
             {
                 status = execute(c, n, interactive, fd);
             }
@@ -771,14 +808,11 @@ int main(int argc, char **argv)
 
         if (interactive && WIFSIGNALED(status))
         {
-            dprintf(1, "Terminated by signal %s\n",
-                    strsignal(WTERMSIG(status)));
+            dprintf(1, "Terminated by signal %s\n", strsignal(WTERMSIG(status)));
         }
-        else if (interactive && WIFEXITED(status) &&
-                 WEXITSTATUS(status))
+        else if (interactive && WIFEXITED(status) && WEXITSTATUS(status))
         {
-            dprintf(1, "Exited with status %d\n",
-                    WEXITSTATUS(status));
+            dprintf(1, "Exited with status %d\n", WEXITSTATUS(status));
         }
 
         if (r == 0)
