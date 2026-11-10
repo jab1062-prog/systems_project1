@@ -11,17 +11,34 @@
 #include <signal.h>
 
 typedef struct { char **av; size_t n; char *in, *out; int append; } Cmd;
-static void *mem(void *p, size_t n) {
+static void *mem(void *p, size_t n) 
+{
     void *q = realloc(p, n);
     if (!q) { perror("allocation"); exit(0); }
     return q;
 }
-static char *copy(const char *s) {
+
+static char *copy(const char *s) 
+{
     char *p = mem(NULL, strlen(s)+1); strcpy(p,s); return p;
 }
-static char *cwd(void) {
+
+
+static char *cwd(void) 
+
+{
     size_t n=128; char *p=NULL;
-    for (;;) { p=mem(p,n); if(getcwd(p,n)) return p;
+    for (;;) 
+
+        
+    { 
+        
+     p=mem(p,n); 
+     if(getcwd(p,n))
+     {
+         return p;
+     }
+         return p;
         if(errno!=ERANGE) { perror("getcwd"); free(p); return NULL; } n*=2; }
 }
 static void arg(Cmd *c, const char *s) {
