@@ -1,7 +1,7 @@
 echo < <
 | cat
 echo x |
-cat < doesn't exist
+cat < doesn't_exist
 command123
 cd a b
 pwd extra
