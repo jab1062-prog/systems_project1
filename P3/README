@@ -16,7 +16,7 @@ We wanted to test:
 7. If command lookup works correctly. We tested commands using their names and absolute paths to check that executables are found in the correct search directories.
 8. If errors are handled correctly. We tested invalid commands, missing files, permission errors, and invalid redirections to check that the shell reports errors and continues executing subsequent commands.
 9. If the exit command works correctly. We tested `exit` in interactive mode, batch mode, and pipelines to check that the shell stops only after the current job finishes.
-10. If signals are handled correctly. We tested Ctrl-D and Ctrl-C behavior through a signal helper program, and commands terminated by signals to check that the shell handles them without crashing.
+10. If signals are handled correctly. We tested Ctrl-D and Ctrl-C's behavior through a signal helper program, and commands terminated by signals to check that the shell handles them without crashing.
 11. If long input lines are handled correctly. We tested a command containing at least 2,000 characters to check that input lines and arguments can grow dynamically.
 12. If empty input and missing trailing newlines are handled correctly. We tested empty input and commands without a final newline to check that the shell handles both cases properly.
 
