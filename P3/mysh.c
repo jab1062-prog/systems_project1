@@ -1,4 +1,3 @@
-
 #define _POSIX_C_SOURCE 200809L
 #include <unistd.h>
 #include <sys/wait.h>
@@ -792,7 +791,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            if (n != NULL)
+            if (n > 0)
             {
                 status = execute(c, n, interactive, fd);
             }
