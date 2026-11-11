@@ -3,42 +3,50 @@ CS 214 Fall 2026 - Project III: Minimal Shell
 Names: Jacob Blunt and Pranav Srivats
 NetIDs: jab1062, ps1398
 
-Test Plan:
-
-We wanted to test:
-
-1. If basic commands execute correctly. We tested commands such as `echo`, `cat`, and `pwd` to check that the shell executes programs and displays their output correctly.
-2. If batch mode works correctly. We tested the shell using command files and piped input to check that commands execute in order without displaying interactive prompts or welcome and goodbye messages.
-3. If input and output redirection work correctly. We tested redirecting input from files and redirecting output to files. We also checked that existing files are replaced and newly created files have the correct permissions.
-4. If pipelines work correctly. We tested commands connected by pipes, including multi-stage pipelines, to check that output from one command becomes input to the next. We also checked that pipeline commands do not hang and that the last command determines the pipeline's exit status.
-5. If built-in commands work correctly. We tested commands such as `cd`, `exit`, and `which` to check that they behave correctly. We also checked that changing directories in a pipeline does not change the parent shell's directory.
-6. If wildcard expansion works correctly. We created files with different names and tested patterns containing `*` to check prefix and suffix matching. We also tested unmatched patterns and hidden files.
-7. If command lookup works correctly. We tested commands using their names and absolute paths to check that executables are found in the correct search directories.
-8. If errors are handled correctly. We tested invalid commands, missing files, permission errors, and invalid redirections to check that the shell reports errors and continues executing subsequent commands.
-9. If the exit command works correctly. We tested `exit` in interactive mode, batch mode, and pipelines to check that the shell stops only after the current job finishes.
-10. If signals are handled correctly. We tested Ctrl-D and Ctrl-C's behavior through a signal helper program, and commands terminated by signals to check that the shell handles them without crashing.
-11. If long input lines are handled correctly. We tested a command containing at least 2,000 characters to check that input lines and arguments can grow dynamically.
-12. If empty input and missing trailing newlines are handled correctly. We tested empty input and commands without a final newline to check that the shell handles both cases properly.
-
-
-BUILD AND RUN
-
-1. To compile the shell, run the following command from the P3 directory: make
-
-2. To start the shell in interactive mode: ./mysh
-
-3. To run the shell in batch mode using the test input files: ./mysh tests/basic.in, ./mysh tests/errors.in, and ./mysh tests/exit.in
-
 
 TEST PLAN
 
-We tested our shell using a combination of input files, interactive commands, and piped input. We focused on making sure that commands execute correctly, input and output are handled properly, and the shell continues running even when errors occur.
+We wanted to test the following aspects of our shell:
+
+1. If basic commands execute correctly: Whether commands such as echo, cat, and pwd execute correctly and display their output.
+2. If batch mode works correctly: Whether the shell correctly processes command files and piped input without displaying interactive prompts or welcome and goodbye messages.
+3. If input and output redirection work correctly: Whether input and output can be redirected correctly, existing files are replaced, and newly created files have the correct permissions.
+4. If pipelines work correctly: Whether commands connected by pipes pass output correctly, including multi-stage pipelines, without hanging.
+5.  If built-in commands work correctly: Whether cd, exit, and which work correctly, including whether cd inside a pipeline leaves the parent shell's working directory unchanged.
+6. If wildcard expansion works correctly: Whether patterns containing * correctly match filenames, including prefix and suffix matching, unmatched patterns, and hidden files.
+7. If command lookup works correctly: Whether commands can be found using their names and absolute paths.
+8. If errors are handled correctly: Whether the shell reports invalid commands, missing files, and invalid redirections while continuing to execute subsequent commands.
+9. If the exit command works correctly: Whether exit works in interactive mode, batch mode, and pipelines.
+10. If signals are handled correctly: Whether the shell handles child processes terminated by signals and responds correctly to Ctrl-D.
+11. If long input lines are handled correctly: Whether the shell can handle commands containing thousands of characters without truncating input.
+12. If Interactive input works correctly: Whether commands that read from standard input, such as cat, finish correctly when Ctrl-D is entered.
+
+BUILD AND RUN
+
+To compile the shell, run the following command from the P3 directory: make
+
+To start the shell in interactive mode: ./mysh
+
+To run the shell in batch mode using the test input files, run the following commands from the P3 directory: 
+
+cd tests
+
+../mysh basic.in
+../mysh errors.in
+../mysh exit.in
+
+The tests directory also contains sample text files used for wildcard expansion tests and the signal helper source code.
+
+
+TESTING DETAILS
+
+We tested our shell using a combination of input files, interactive commands, and piped input.
 
 1. Basic command execution:
    We tested commands such as echo, cat, and pwd to make sure programs execute and display their output correctly. These tests are included in tests/basic.in.
 
 2. Batch mode:
-   We ran mysh with input files and piped input to verify that commands execute in order without interactive prompts or welcome/goodbye messages.
+   We ran mysh with input files and piped input to check that commands execute in order without displaying interactive prompts or welcome and goodbye messages.
 
 3. Input and output redirection:
    We tested redirecting input from files and redirecting output to files. We also tested appending to existing files and using input and output redirection together.
@@ -50,27 +58,25 @@ We tested our shell using a combination of input files, interactive commands, an
    We tested cd, pwd, which, and exit to make sure they behave correctly. We also tested changing directories inside a pipeline to check that it does not change the parent shell's working directory.
 
 6. Wildcard expansion:
-   We created sample files with different names and tested wildcard patterns such as *.txt, jacob*pranav, and sub/*.txt. We also tested patterns with no matches and checked that hidden files are not included.
+   We created sample text files in the tests directory and its subdirectory. We tested wildcard patterns such as *.txt, test1*test2, and sub/*.txt. We also tested patterns with no matches and checked that hidden files are not included.
 
 7. Command lookup:
-   We tested "which" with executable names and absolute paths to check that programs are found correctly.
+   We tested which with executable names and absolute paths to check that programs are found correctly.
 
 8. Error handling:
-   We tested invalid syntax, incomplete pipelines, missing input files, unknown commands, and invalid arguments to built-in commands. These tests are included in tests/errors.in. We also checked that the shell continues executing multiple commands after errors.
+   We tested invalid syntax, incomplete pipelines, missing input files, unknown commands, and invalid arguments to built-in commands. These tests are included in tests/errors.in. We also checked that the shell continues executing subsequent commands after errors.
 
 9. Exit behavior:
-   We tested exit in interactive mode, batch mode, and inside a pipeline. These tests check that the shell terminates correctly and that commands in the current pipeline are allowed to finish. These tests are located in tests/exit.in.
+   We tested exit in interactive mode, batch mode, and inside a pipeline. These tests check that the shell terminates correctly even when exit appears in a pipeline. These tests are included in tests/exit.in.
 
 10. Signal handling:
     We compiled and ran a signal helper program to test how the shell responds when a child process is terminated by a signal. We checked that the shell reports the signal and returns to the prompt. We also tested batch execution after a child process was terminated by a signal to make sure later commands still execute.
 
 11. Long input lines:
-    We tested a command that contained 3,000 characters to check that the shell can handle long input lines without crashing or truncating the command.
+    We tested a command which contained 3,000 characters to check that the shell can handle long input lines without crashing or truncating the command.
 
 12. Interactive input:
     We tested running cat from the interactive shell, entering text, and pressing Ctrl-D to check that cat finishes and control returns to the shell.
 
 13. Memory and undefined behavior:
     We compiled the shell with AddressSanitizer and UndefinedBehaviorSanitizer enabled and ran the basic, error, and exit test files, as well as an interactive test, to check for memory errors and undefined behavior.
-
-
