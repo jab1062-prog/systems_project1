@@ -16,6 +16,6 @@ pwd
 echo *.txt
 echo absent*
 echo foo*bar
-echo *.txt foo*bar
+echo *.txt jacob*pranav
 echo sub/*.txt
 which echo /bin/cat which
