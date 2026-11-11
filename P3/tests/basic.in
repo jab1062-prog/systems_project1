@@ -15,7 +15,7 @@ cd / | cat
 pwd
 echo *.txt
 echo absent*
-echo foo*bar
+echo jacob*pranav
 echo *.txt jacob*pranav
 echo sub/*.txt
 which echo /bin/cat which
