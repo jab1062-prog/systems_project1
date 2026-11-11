@@ -1,2 +1,2 @@
-exit ignored | echo farewell > farewell
+exit ignored | echo bye > bye
 echo unreachable
