@@ -1,13 +1,12 @@
-# Comments and blank lines do nothing.
 
 echo hello# comment
 cat
-echo after-cat
-echo first > data
-echo second >> data
+echo next-cat
+echo pranav > data
+echo jacob >> data
 cat < data > copy
 cat < copy
-echo replacement > data
+echo final result > data
 cat < data
 seq 1 50000 | cat | wc -l
 pwd > location
