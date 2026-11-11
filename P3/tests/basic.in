@@ -1,7 +1,7 @@
 
 echo hello# comment
 cat
-echo next-cat
+echo next
 echo pranav > data
 echo jacob >> data
 cat < data > copy
