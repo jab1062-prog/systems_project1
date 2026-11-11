@@ -119,7 +119,7 @@ static void expand(Cmd *c, const char *s)
 
 
     
-    if (d == true)
+    if (d != NULL)
     {
         struct dirent *e;
 
@@ -792,7 +792,7 @@ int main(int argc, char **argv)
                 }
             }
 
-            if (n == true)
+            if (n != NULL)
             {
                 status = execute(c, n, interactive, fd);
             }
